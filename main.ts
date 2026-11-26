@@ -4,7 +4,7 @@
 // Outside the grader, MAKEFUN_OUTPUT_DIR stands in for /output.
 
 import { buildDossier } from './vendor/makefun-game.ts';
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname ?? '.');
@@ -29,8 +29,12 @@ function main(): void {
   if (!existsSync(gameDir)) fail('game/ is missing from the repository');
   if (!existsSync(shotsDir)) fail('screenshots/ is missing from the repository');
 
-  rmSync(OUT, { recursive: true, force: true });
+  // Never remove OUT itself: in the grader it is a mount point (/output)
+  // and removing it fails with EBUSY. Clear only its children instead.
   mkdirSync(OUT, { recursive: true });
+  for (const child of readdirSync(OUT)) {
+    rmSync(join(OUT, child), { recursive: true, force: true });
+  }
 
   cpSync(gameDir, join(OUT, 'game'), { recursive: true });
   cpSync(shotsDir, join(OUT, 'screenshots'), { recursive: true });
